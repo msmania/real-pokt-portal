@@ -1,3 +1,4 @@
+import { cache } from 'react'
 import { JsonRpcProvider } from "@msmania/pocketjs-provider";
 import { KeyManager } from "@pokt-foundation/pocketjs-signer";
 import { Relayer as PocketJsRelayer } from "@msmania/pocketjs-relayer";
@@ -172,4 +173,33 @@ export async function Relay(network, session, relayPlan, payloadStr) {
     )
   );
   return resultsNorm;
+}
+
+const getSession = cache(async (network, chain) => {
+  const {Provider, AppSigner} = await LoadPocket(network);
+  const session = await Provider.dispatch({
+    sessionHeader: {
+      sessionBlockHeight: 0,
+      chain,
+      applicationPubKey: AppSigner.publicKey,
+    },
+  });
+  return session;
+});
+
+export async function SingleRelay(network, chain, payload) {
+  const {AAT, Relayer} = await LoadPocket(network);
+  const dispatchResp = await getSession(network, chain);
+  const relayResp = await Relayer.relay({
+    blockchain: chain,
+    data: JSON.stringify(payload),
+    pocketAAT: AAT,
+    session: dispatchResp.session,
+    options: {
+      retryAttempts: 5,
+      rejectSelfSignedCertificates: false,
+      timeout: 8000,
+    },
+  });
+  return relayResp.response;
 }
