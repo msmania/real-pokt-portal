@@ -9,7 +9,10 @@ export default function PocketError({err}) {
   }
   else {
     const errInfo = err.info;
-    if ('message' in errInfo) {
+    if (typeof(errInfo) == 'string') {
+      errMsg = errInfo;
+    }
+    else if ('message' in errInfo) {
       const lines = errInfo.message.split('\n');
       if (lines.length > 1) {
         errMsg = lines.map(
