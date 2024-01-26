@@ -115,7 +115,7 @@ export async function Relay(network, session, relayPlan, payloadStr) {
   const payloadData = JSON.stringify(maybeHttpRpcPayload?.data) ?? payloadStr;
   const defaultPath = session.header.chain == '03DF'
     ? '/ext/bc/q2aTwKuyzgs8pynF7UXBZCU7DejbZbZ6EUyHr3JQzYgwNPUPi/rpc'
-    : session.header.chain == '0003' || session.header.chain == '00A3'
+    : session.header.chain == '0003' || session.header.chain == 'A003'
     ? '/ext/bc/C/rpc'
     : '';
   session.header.applicationPubKey = AppSigner.publicKey;
