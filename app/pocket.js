@@ -1,12 +1,15 @@
-import { cache } from 'react'
 import { JsonRpcProvider } from "@msmania/pocketjs-provider";
 import { KeyManager } from "@pokt-foundation/pocketjs-signer";
 import { Relayer as PocketJsRelayer } from "@msmania/pocketjs-relayer";
 import { SortObjectKeys } from "./utils";
 import { LoadDB } from "./mongo";
+import NodeCache from "node-cache";
 
 let initialized = false;
 const PocketClients = {};
+const sessionCache = new NodeCache({
+  stdTTL: 600,
+});
 
 async function InitPocket(forceInit) {
   if (initialized) {
@@ -175,7 +178,7 @@ export async function Relay(network, session, relayPlan, payloadStr) {
   return resultsNorm;
 }
 
-const getSession = cache(async (network, chain) => {
+async function getSession(network, chain) {
   const {Provider, AppSigner} = await LoadPocket(network);
   const session = await Provider.dispatch({
     sessionHeader: {
@@ -185,16 +188,24 @@ const getSession = cache(async (network, chain) => {
     },
   });
   return session;
-});
+}
 
 export async function SingleRelay(network, chain, payload) {
   const {AAT, Relayer} = await LoadPocket(network);
-  const dispatchResp = await getSession(network, chain);
+
+  const sessionCacheKey = `${network}-${chain}`;
+  let session = sessionCache.get(sessionCacheKey);
+  if (!session) {
+    const dispatchResp = await getSession(network, chain);
+    session = dispatchResp.session;
+    sessionCache.set(sessionCacheKey, session);
+  }
+
   const relayResp = await Relayer.relay({
     blockchain: chain,
     data: JSON.stringify(payload),
     pocketAAT: AAT,
-    session: dispatchResp.session,
+    session: session,
     options: {
       retryAttempts: 5,
       rejectSelfSignedCertificates: false,
